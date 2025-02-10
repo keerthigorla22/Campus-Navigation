@@ -1,1 +1,1 @@
-# Campus-Navigation-
+# Campus Navigation
