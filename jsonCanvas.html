@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Image Coordinate Capture</title>
+    <link rel="stylesheet" href="jsonCanvas.css">
+</head>
+<body>
+    <h1>Interactive Image Coordinate Capture</h1>
+    <div id="controls">
+        <button id="addShapeBtn">Add Shape</button>
+        <button id="completeShapeBtn" style="display:none;">Complete Shape</button>
+        <button id="downloadJsonBtn" style="display:none;">Download JSON</button>
+    </div>
+    <div id="imageContainer">
+        <img id="image" src="./Screenshot 2025-01-26 at 12.28.49 AM.png" alt="Interactive Image">
+    </div>
+    <div id="coordinatesList">
+        <h2>Captured Coordinates:</h2>
+        <pre id="jsonOutput">[]</pre>
+    </div>
+    <script src="jsonCanvas.js"></script>
+</body>
+</html>
