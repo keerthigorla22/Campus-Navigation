@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Indoor Map Maker</title>
+  <link rel="stylesheet" href="jsonCanvas.css" />
+</head>
+<body>
+  <h2>Indoor Map Maker – Convert Floor Plan to JSON</h2>
+  <div id="controls">
+    <input type="file" id="uploadImage" accept="image/*" />
+    <button onclick="startNewShape()">Start New Shape</button>
+    <button onclick="undoLastPoint()">Undo Last Point</button>
+    <button onclick="resetCanvas()">Reset</button>
+    <button onclick="exportJSON()">Export JSON</button>
+  </div>
+  <div id="imageContainer">
+    <canvas id="canvas"></canvas>
+  </div>
+  <textarea id="jsonOutput" readonly></textarea>
+  <script src="jsonCanvas.js"></script>
+</body>
+</html>

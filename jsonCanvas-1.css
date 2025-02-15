@@ -1,0 +1,31 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  
+  #controls {
+    margin-bottom: 10px;
+  }
+  
+  #imageContainer {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+    /* Optional grid overlay for alignment */
+    background-image: 
+      linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  #canvas {
+    border: 1px solid #000;
+    cursor: crosshair;
+  }
+  
+  #jsonOutput {
+    width: 80%;
+    height: 150px;
+    margin-top: 10px;
+  }
+  
