@@ -1,7 +1,13 @@
 body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-  }
+  font-family: Arial, sans-serif;
+  background: linear-gradient(45deg, #bcde4f, #3cd7da, #f75188, #ac6ceb, #e67300 );
+  background-size: 400% 400%;
+  animation: gradientAnimation 10s ease infinite; /* Smooth moving gradient animation */
+  color: #333;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
   
   #controls {
     margin-bottom: 10px;
@@ -28,4 +34,14 @@ body {
     height: 150px;
     margin-top: 10px;
   }
-  
+  @keyframes gradientAnimation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
