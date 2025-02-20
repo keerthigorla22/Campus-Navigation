@@ -152,3 +152,11 @@ canvas.addEventListener('wheel', (e) => {
 window.addEventListener("resize", updateCanvasSize);
 updateCanvasSize();
 loadJson();
+
+function resetPosition() {
+  scale = 1;
+  offsetX = 0;
+  offsetY = 0;
+  adjustScaleToFit();
+  drawRooms(roomsData);
+}
