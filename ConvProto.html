@@ -3,16 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Floor Plan</title>
-    <link rel="stylesheet" href="./ConvProto.css">
+  <title>Floor Plan Navigation</title>
+  <link rel="stylesheet" href="./ConvProto.css">
+  <script src="./ConvProto.js" defer></script>
 </head>
 <body>
-    <canvas id="floorCanvas"></canvas>
+    <header>
+        <h1>Building Navigation</h1>
+        <div class="search-container">
+            <input type="text" id="currentLocation" placeholder="Current Location">
+            <input type="text" id="finalDestination" placeholder="Final Destination">
+            <button onclick="findRoute()">Go</button>
+        </div>
+    </header>
+    <div class="map-container">
+        <canvas id="floorCanvas"></canvas>
+    </div>
     <div class="movement-controls">
         <button onclick="resetPosition()">⌂</button>
     </div>
-    <script src="./ConvProto.js"></script>
-
-
 </body>
 </html>
