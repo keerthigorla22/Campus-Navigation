@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Indoor Map with Interactive Graph</title>
+  <style>
+    /* Canvas fills the viewport and leaves room for controls */
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    #floorCanvas {
+      display: block;
+      background: #f0f0f0;
+    }
+    /* Controls panel at the bottom */
+    #controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      font-family: sans-serif;
+      box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+    }
+    #controls input, #controls button, #controls textarea {
+      margin: 5px;
+    }
+    #jsonOutput {
+      width: 300px;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="floorCanvas"></canvas>
+  <div id="controls">
+        <label>
+      <input type="checkbox" id="interactiveToggle" /> Interactive Mode
+    </label>
+    <button id="resetGraph">Reset Graph</button>
+    <br/>
+        <label>From: <input type="text" id="sourceNode" placeholder="Source node name" /></label>
+    <label>To: <input type="text" id="targetNode" placeholder="Target node name" /></label>
+    <button id="findPath">Find Shortest Path</button>
+    <br/>
+    <textarea id="jsonOutput" placeholder="Graph JSON will appear here..." readonly></textarea>
+    <button id="exportGraph">Export Graph JSON</button>
+  </div>
+
+  <script>
+    // ------------------- Your Floor Plan Drawing Code (Do Not Modify) ------------------- //
+
+    const canvas = document.getElementById("floorCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let scale = 1;
+    let offsetX = 0, offsetY = 0;
+    let isDragging = false;
+    let lastX, lastY;
+    let roomsData = [];
+
+    function updateCanvasSize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - 120; // leave space for controls
+      adjustScaleToFit();
+      redrawAll();
+    }
+
+    function adjustScaleToFit() {
+      if (roomsData.length === 0) return;
+      const maxWidth = Math.max(...roomsData.flatMap(room => room.points.map(p => p.x)));
+      const maxHeight = Math.max(...roomsData.flatMap(room => room.points.map(p => p.y)));
+      const scaleX = canvas.width / maxWidth;
+      const scaleY = canvas.height / maxHeight;
+      scale = Math.min(scaleX, scaleY) * 0.85;
+      offsetX = 0;
+      offsetY = 0;
+    }
+
+    function clearCanvas() {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawRooms(rooms) {
+      ctx.save();
+      ctx.translate(canvas.width / 2 + offsetX, canvas.height / 2 + offsetY);
+      ctx.scale(scale, scale);
+      ctx.translate(-canvas.width / 2, -canvas.height / 2);
+      rooms.forEach(drawRoom);
+      ctx.restore();
+    }
+
+    function drawRoom(room) {
+      if (room.name.toLowerCase().includes("boundary")) {
+        ctx.beginPath();
+        const firstPoint = room.points[0];
+        ctx.moveTo(firstPoint.x, firstPoint.y);
+        room.points.forEach(point => {
+          ctx.lineTo(point.x, point.y);
+        });
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        const firstPoint = room.points[0];
+        ctx.moveTo(firstPoint.x, firstPoint.y);
+        room.points.forEach(point => {
+          ctx.lineTo(point.x, point.y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = room.highlightColor ? room.highlightColor : (room.color || getRandomColor());
+        ctx.fill();
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        drawRoomLabel(room);
+      }
+    }
+
+    function drawRoomLabel(room) {
+      const minX = Math.min(...room.points.map(p => p.x));
+      const maxX = Math.max(...room.points.map(p => p.x));
+      const minY = Math.min(...room.points.map(p => p.y));
+      const maxY = Math.max(...room.points.map(p => p.y));
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      const roomWidth = maxX - minX;
+      const roomHeight = maxY - minY;
+      const fontSize = Math.max(6, Math.min(roomWidth, roomHeight) / 6);
+      ctx.font = `${fontSize}px Arial`;
+      ctx.fillStyle = "black";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(room.name, centerX, centerY);
+    }
+
+    function getRandomColor() {
+      return `hsl(${Math.random() * 360}, 70%, 70%)`;
+    }
+
+    async function loadJson() {
+      try {
+        const response = await fetch('./PG_01.json');
+        let jsonData = await response.json();
+        roomsData = jsonData.map(room => ({
+          ...room,
+          color: room.color || `hsl(${Math.random() * 360}, 70%, 70%)`,
+          highlightColor: room.color || `hsl(${Math.random() * 360}, 70%, 70%)`
+        }));
+        adjustScaleToFit();
+        redrawAll();
+      } catch (error) {
+        console.error('Error loading JSON:', error);
+      }
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (!interactiveMode) { // pan only if interactive mode is off
+        isDragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging && !interactiveMode) {
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        offsetX += dx;
+        offsetY += dy;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        redrawAll();
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const scaleFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      scale *= scaleFactor;
+      scale = Math.min(Math.max(0.5, scale), 5);
+      redrawAll();
+    });
+
+    window.addEventListener("resize", updateCanvasSize);
+    updateCanvasSize();
+    loadJson();
+
+    function resetPosition() {
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+      adjustScaleToFit();
+      redrawAll();
+    }
+
+    // Optional: function to highlight rooms (your existing logic)
+    function applyRoomHighlights(currentLocation, destination) {
+      const current = currentLocation ? currentLocation.toLowerCase() : null;
+      const dest = destination ? destination.toLowerCase() : null;
+      const sourceFound = current ? roomsData.some(room => room.name.toLowerCase() === current) : false;
+      const destinationFound = dest ? roomsData.some(room => room.name.toLowerCase() === dest) : false;
+      if ((current && !sourceFound) || (dest && !destinationFound)) {
+        roomsData.forEach(room => room.highlightColor = "grey");
+      } else {
+        roomsData.forEach(room => {
+          const roomName = room.name.toLowerCase();
+          if (current && roomName === current) {
+            room.highlightColor = "green";
+          } else if (dest && roomName === dest) {
+            room.highlightColor = "lightcoral";
+          } else {
+            room.highlightColor = room.color || `hsl(${Math.random() * 360}, 70%, 70%)`; // Revert to original color if not source/destination
+          }
+        });
+      }
+      redrawAll();
+    }
+
+    // ------------------- Interactive Graph & Dijkstra Routing ------------------- //
+
+    let interactiveMode = false; // toggled by checkbox
+    let interactiveNodes = [];
+    let interactiveEdges = [];
+    let nodeIdCounter = 1;
+    let edgeIdCounter = 1;
+    let selectedInteractiveNode = null;
+    let shortestPathEdges = []; // will hold the edges for the computed shortest path
+
+    // Toggle interactive mode via the checkbox
+    document.getElementById("interactiveToggle").addEventListener("change", (e) => {
+      interactiveMode = e.target.checked;
+      selectedInteractiveNode = null; // clear any current selection
+      redrawAll();
+    });
+
+    // When interactive mode is on, clicking on the canvas either creates a node or selects one for an edge.
+    canvas.addEventListener("click", (e) => {
+      if (!interactiveMode) return;
+      // Convert click coordinates to world coordinates using the same transformation as drawRooms
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      const worldX = ((clickX - (canvas.width / 2 + offsetX)) / scale) + canvas.width / 2;
+      const worldY = ((clickY - (canvas.height / 2 + offsetY)) / scale) + canvas.height / 2;
+
+      // If click is close to an existing node, treat it as a selection (within 10 world pixels)
+      const clickedNode = interactiveNodes.find(node => {
+        const dx = node.x - worldX;
+        const dy = node.y - worldY;
+        return Math.sqrt(dx*dx + dy*dy) < 10;
+      });
+
+      if (clickedNode) {
+        handleInteractiveNodeSelection(clickedNode);
+      } else {
+        addInteractiveNode(worldX, worldY);
+      }
+      redrawAll();
+    });
+
+    function addInteractiveNode(x, y) {
+      const nodeName = prompt("Enter node name:", `Node ${nodeIdCounter}`);
+      if (!nodeName) return;
+      interactiveNodes.push({ id: nodeIdCounter, name: nodeName, x, y });
+      nodeIdCounter++;
+    }
+
+    function handleInteractiveNodeSelection(node) {
+      if (!selectedInteractiveNode) {
+        selectedInteractiveNode = node;
+      } else if (selectedInteractiveNode.id === node.id) {
+        selectedInteractiveNode = null;
+      } else {
+        createInteractiveEdge(selectedInteractiveNode, node);
+        selectedInteractiveNode = null;
+      }
+    }
+
+    function createInteractiveEdge(nodeA, nodeB) {
+      const dx = nodeA.x - nodeB.x;
+      const dy = nodeA.y - nodeB.y;
+      const distance = Math.sqrt(dx*dx + dy*dy);
+      interactiveEdges.push({
+        id: edgeIdCounter,
+        from: nodeA.id,
+        to: nodeB.id,
+        weight: Number(distance.toFixed(2))
+      });
+      edgeIdCounter++;
+    }
+
+    // Draw interactive nodes and edges overlay on the same transformed canvas.
+    function drawInteractiveGraph() {
+      ctx.save();
+      ctx.translate(canvas.width / 2 + offsetX, canvas.height / 2 + offsetY);
+      ctx.scale(scale, scale);
+      ctx.translate(-canvas.width / 2, -canvas.height / 2);
+      
+      // Draw edges
+      interactiveEdges.forEach(edge => {
+        const nodeA = interactiveNodes.find(n => n.id === edge.from);
+        const nodeB = interactiveNodes.find(n => n.id === edge.to);
+        if (nodeA && nodeB) {
+          ctx.beginPath();
+          ctx.moveTo(nodeA.x, nodeA.y);
+          ctx.lineTo(nodeB.x, nodeB.y);
+          if (shortestPathEdges.find(e => e.id === edge.id)) {
+            ctx.strokeStyle = "blue";
+            ctx.lineWidth = 4;
+          } else {
+            ctx.strokeStyle = "orange";
+            ctx.lineWidth = 2;
+          }
+          ctx.stroke();
+        }
+      });
+      
+      // Draw nodes
+      interactiveNodes.forEach(node => {
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = (selectedInteractiveNode && node.id === selectedInteractiveNode.id) ? "red" : "yellow";
+        ctx.fill();
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // Draw node label
+        ctx.font = "12px Arial";
+        ctx.fillStyle = "black";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText(node.name, node.x, node.y + 8);
+      });
+      ctx.restore();
+    }
+
+    // Wrap all drawing functions together.
+    function redrawAll() {
+      clearCanvas();
+      drawRooms(roomsData);
+      drawInteractiveGraph();
+    }
+
+    // ------------------- Dijkstra's Shortest Path ------------------- //
+
+    function dijkstra(nodesArr, edgesArr, sourceId, targetId) {
+      const distances = {};
+      const prev = {};
+      const Q = new Set();
+
+      nodesArr.forEach(node => {
+        distances[node.id] = Infinity;
+        prev[node.id] = null;
+        Q.add(node.id);
+      });
+      distances[sourceId] = 0;
+
+      while (Q.size > 0) {
+        // Find the node in Q with the smallest distance.
+        let u = Array.from(Q).reduce((min, nodeId) =>
+          distances[nodeId] < distances[min] ? nodeId : min
+        );
+        Q.delete(u);
+        if (u === targetId) break;
+
+        // Update distances to neighbors.
+        const neighbors = edgesArr.filter(edge => edge.from === u || edge.to === u);
+        neighbors.forEach(edge => {
+          const v = (edge.from === u) ? edge.to : edge.from;
+          if (!Q.has(v)) return;
+          const alt = distances[u] + edge.weight;
+          if (alt < distances[v]) {
+            distances[v] = alt;
+            prev[v] = { edge, from: u, to: v };
+          }
+        });
+      }
+
+      // Reconstruct the shortest path.
+      let path = [];
+      let u = targetId;
+      while (prev[u]) {
+        path.unshift(prev[u]);
+        u = prev[u].from;
+      }
+      return path;
+    }
+
+    document.getElementById("findPath").addEventListener("click", () => {
+      const sourceName = document.getElementById("sourceNode").value.trim();
+      const targetName = document.getElementById("targetNode").value.trim();
+      if (!sourceName || !targetName) {
+        alert("Please enter both source and target node names.");
+        return;
+      }
+      const sourceNode = interactiveNodes.find(n => n.name.toLowerCase() === sourceName.toLowerCase());
+      const targetNode = interactiveNodes.find(n => n.name.toLowerCase() === targetName.toLowerCase());
+      if (!sourceNode || !targetNode) {
+        alert("Source or target node not found.");
+        return;
+      }
+      const path = dijkstra(interactiveNodes, interactiveEdges, sourceNode.id, targetNode.id);
+      if (path.length === 0) {
+        alert("No path found.");
+        // Optionally, you could clear any previous highlights here
+        roomsData.forEach(room => room.highlightColor = room.color || `hsl(${Math.random() * 360}, 70%, 70%)`);
+        redrawAll();
+      } else {
+        shortestPathEdges = path.map(p => p.edge);
+        // Highlight the source and target rooms on the floor plan
+        applyRoomHighlights(sourceName, targetName);
+        redrawAll();
+      }
+    });
+
+    // Reset interactive graph overlay.
+    document.getElementById("resetGraph").addEventListener("click", () => {
+      interactiveNodes = [];
+      interactiveEdges = [];
+      shortestPathEdges = [];
+      selectedInteractiveNode = null;
+      nodeIdCounter = 1;
+      edgeIdCounter = 1;
+      // Optionally, reset room highlights as well
+      roomsData.forEach(room => room.highlightColor = room.color || `hsl(${Math.random() * 360}, 70%, 70%)`);
+      redrawAll();
+    });
+
+    // Export interactive graph JSON.
+    document.getElementById("exportGraph").addEventListener("click", () => {
+      const graphData = { nodes: interactiveNodes, edges: interactiveEdges };
+      const jsonStr = JSON.stringify(graphData, null, 2);
+      document.getElementById("jsonOutput").value = jsonStr;
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "interactive_graph.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Consider: You might want to add logic to visually indicate when interactive mode is active (e.g., change cursor).
+
+    // Note: If interactive nodes are placed over room labels, it might create visual clutter. Consider how you want to handle this (e.g., allow dragging of nodes, different visual priorities).
+
+    // Further integration ideas (beyond this update):
+    // - Allow snapping of interactive nodes to the center of rooms or to predefined points in the floor plan data.
+    // - Define edges based on adjacency or connections specified in the floor plan data.
+  </script>
+</body>
+</html>

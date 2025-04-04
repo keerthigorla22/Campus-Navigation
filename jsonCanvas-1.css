@@ -1,47 +1,98 @@
 body {
   font-family: Arial, sans-serif;
-  background: linear-gradient(45deg, #bcde4f, #3cd7da, #f75188, #ac6ceb, #e67300 );
-  background-size: 400% 400%;
-  animation: gradientAnimation 10s ease infinite; /* Smooth moving gradient animation */
+  background: #f4f4f4;
   color: #333;
-  margin: 0;
-  padding: 0;
+  margin: 20px;
+  padding: 20px;
   text-align: center;
 }
-  
-  #controls {
-    margin-bottom: 10px;
-  }
-  
-  #imageContainer {
-    position: relative;
-    display: inline-block;
-    overflow: hidden;
-    /* Optional grid overlay for alignment */
-    background-image: 
-      linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
-  }
-  
-  #canvas {
-    border: 1px solid #000;
-    cursor: crosshair;
-  }
-  
-  #jsonOutput {
-    width: 80%;
-    height: 150px;
-    margin-top: 10px;
-  }
-  @keyframes gradientAnimation {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
+
+h2, h3 {
+  color: #337ab7;
+}
+
+#controls, #toolControls {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+#toolControls {
+  flex-direction: row;
+}
+
+#controls label {
+  margin-left: 10px;
+}
+
+#controls input[type="number"] {
+  width: 80px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+#controls button, #toolControls button {
+  padding: 8px 15px;
+  background-color: #5cb85c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s ease;
+}
+
+#controls button:hover, #toolControls button:hover {
+  background-color: #4cae4c;
+}
+
+#toolControls button.active {
+  background-color: #337ab7;
+}
+
+#imageContainer {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+#canvas {
+  border: none; /* Remove redundant border */
+  cursor: crosshair;
+  display: block; /* Prevents extra space below canvas */
+}
+
+#jsonOutput {
+  width: 90%;
+  height: 200px;
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  text-align: left;
+}
+
+/* Optional grid overlay (can be toggled with JavaScript later) */
+.grid-overlay {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Allows clicks to pass through to the canvas */
 }
